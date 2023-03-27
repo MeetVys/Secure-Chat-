@@ -1,6 +1,8 @@
 #include <bits/stdc++.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <sys/socket.h>
+#include <unistd.h>
 
 using namespace std;
 
@@ -19,7 +21,7 @@ int ServerSide () {
     address.sin_addr.s_addr = inet_addr("127.0.0.1");
     address.sin_port = htons(PORT);
 
-    int bind_flag = bind(sock_desc,(struct sockaddr*)&server,sizeof(server));
+    int bind_flag = bind(ServerFD,(struct sockaddr*)&ServerFD,sizeof(ServerFD));
 
     if (bind_flag ==-1){
         cout << "Binding Failed" << endl  ;
@@ -40,15 +42,15 @@ int ServerSide () {
         return -1 ;
     }
 
-    string buffer = "" ;
+    char buffer[4096] = { 0 };
     while (1){
         
 
-        int valread = read(new_socket, buffer, 4096);
+        int valread = read(temp_socket, buffer, 4096);
         cout << buffer << endl ;
 
 
-        string mFromS  ;
+        char mFromS[4096] = { 0 }; 
         cin >> mFromS ;
         // mFromS = "Hello, you are connected to the Server\n" ;
         int send_flag =send(temp_socket,mFromS,sizeof(mFromS),0);
@@ -81,10 +83,11 @@ int ClientSide () {
     ServerAddress.sin_addr.s_addr = inet_addr("127.0.0.1");
     ServerAddress.sin_port = htons(PORT);
 
-    int connect_flag=connect(ClientFD,(struct sockaddr*)&client,sizeof(client));
+    int connect_flag=connect(ClientFD,(struct sockaddr*)&ClientFD,sizeof(ClientFD));
 
     while (1){
-        string buffer = "" ;
+        
+        char buffer[4096] = {0} ;
         cin >> buffer ;
         send(ClientFD,  buffer, 4096, 0);
         cout << "Message Sent" << endl ;
@@ -92,7 +95,7 @@ int ClientSide () {
         cout << buffer << endl ;
     }
 
-    close(client_fd);
+    close(ClientFD);
 
     return 1 ;
 
@@ -100,7 +103,27 @@ int ClientSide () {
 
 int main (int argc, char** argv) {
 
+    cout << argc << endl ;
+    cout << argv[0] << " " << argv[1] << endl ;
+    if ((argv[1][0] == '-' && argv[1][1] == 'S') && argv[1][2]== '\0')  {
+        cout << "Server Matched \n" ;
+        // int function_flag = ServerSide() ;
+        // if (function_flag == 1){
+        //     cout << "Server Successfully executed\n" ; 
+        // }
+    }
 
+    else if ((argv[1][0] == '-' && argv[1][1] == 'C') && argv[1][2]== '\0') {
+        cout << "Client Matched \n" ;
+        // int function_flag = ClientSide() ;
+        // if (function_flag == 1){
+        //     cout << "Client Successfully executed\n" ; 
+        // }
+    }
+
+    else {
+        cout << "no valid command" << endl ;
+    }
 
     return 0 ;
 }
