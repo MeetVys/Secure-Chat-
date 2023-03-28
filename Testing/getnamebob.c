@@ -7,7 +7,7 @@
 #include <arpa/inet.h>
 
 int main() {
-    const char* hostname = "www.google.com";
+    const char* hostname = "bob1";
     struct hostent* host_info = gethostbyname(hostname);
     printf("set one\n") ;
 
