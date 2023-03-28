@@ -14,6 +14,19 @@
 using namespace std;
 #define PORT 8080
 
+// To be set
+#define HOME "/certs/"
+#define CERT_FILE  HOME "1024ccert.pem"
+#define KEY_FILE  HOME  "1024ckey.pem"
+
+/*Password for the key file*/
+#define KEY_PASSWD "keypass"
+
+/*Trusted CAs location*/
+#define CA_FILE "/certs/1024ccert.pem"   // NULL this
+#define CA_DIR  NULL  // Use this as we are using chain
+// TO be set
+
 
 int servertls (int &Connected_socket) {
     SSL_METHOD *meth;
