@@ -6,10 +6,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <tpf/tpfeq.h>
-#include <tpf/tpfio.h>
+// #include <tpf/tpfeq.h>
+// #include <tpf/tpfio.h>
 #include <sys/types.h>
-
+#include <openssl/crypto.h>
+#include <openssl/x509.h>
+#include <openssl/pem.h>
 #include <openssl/ssl.h>
 using namespace std;
 #define PORT 8080
@@ -22,8 +24,15 @@ using namespace std;
 /*Password for the key file*/
 #define KEY_PASSWD "keypass"
 
+
+#define CERT_FILE_CLIENT  HOME "1024ccert.pem"
+#define KEY_FILE_CLIENT  HOME  "1024ckey.pem"
+
+/*Password for the key file*/
+#define KEY_PASSWD_CLIENT "keypass"
+
 /*Trusted CAs location*/
-#define CA_FILE "/certs/1024ccert.pem"   // NULL this
+#define CA_FILE  NULL//"/certs/1024ccert.pem"   // NULL this
 #define CA_DIR  NULL  // Use this as we are using chain
 // TO be set
 
@@ -117,7 +126,7 @@ int ClientTLS (int &socketfd) {
         err=SSL_get_error(myssl,err);
         printf("SSL error #%d in accept,program terminated\n",err);
 
-        if(err==5){printf("sockerrno is:%d\n",sock_errno());}
+        // if(err==5){printf("sockerrno is:%d\n",sock_errno());}
   
         close(socketfd);
         SSL_free(myssl);
@@ -202,7 +211,7 @@ int servertls (int &Connected_socket) {
     SSL_load_error_strings();
 
     /*Set SSLv23 for the connection*/
-  meth=TLSv1_2_server_method();   // Forcing TLS1.2
+    meth=TLSv1_2_server_method();   // Forcing TLS1.2
   ctx=SSL_CTX_new(meth);
   if (!ctx) {
     printf("Error creating the context.\n");
@@ -248,10 +257,10 @@ int servertls (int &Connected_socket) {
   }
 
   /* Set CA list used for client authentication. */
-  if (SSL_CTX_load_and_set_client_CA_file(ctx,CA_FILE) <1) {
-    printf("Error setting CA list.\n");
-    exit(0);
-  }
+//   if (SSL_CTX_set_client_CA_list(ctx,CA_FILE) <1) {
+//     printf("Error setting CA list.\n");
+//     exit(0);
+//   }
 
 //   --------------------------------------- Binding the sockets and initialising 
 
@@ -278,8 +287,8 @@ int servertls (int &Connected_socket) {
   if (err<1) {
     err=SSL_get_error(myssl,err);
     printf("SSL error #%d in SSL_accept,program terminated\n",err);
-    if(err==5){printf("sockerrno is:%d\n",sock_errno());}
-      close(connection_socket);
+    // if(err==5){printf("sockerrno is:%d\n",sock_errno());}
+      close(Connected_socket);
       SSL_CTX_free(ctx);
       exit(0);
   }
@@ -288,7 +297,7 @@ int servertls (int &Connected_socket) {
   if (SSL_get_verify_result(myssl) != X509_V_OK) {
       printf("SSL Client Authentication error\n");
       SSL_free(myssl);
-      close(connection_socket);
+      close(Connected_socket);
       SSL_CTX_free(ctx);
       exit(0);
   }
