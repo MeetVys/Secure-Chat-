@@ -6,6 +6,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <chrono>   // for std::chrono::seconds
+#include <thread>
+
 // #include <tpf/tpfeq.h>
 // #include <tpf/tpfio.h>
 #include <sys/types.h>
@@ -13,45 +16,87 @@
 #include <openssl/x509.h>
 #include <openssl/pem.h>
 #include <openssl/ssl.h>
+#include <openssl/err.h>
+ #include <openssl/bio.h>
 using namespace std;
 #define PORT 8080
 
 // To be set
-#define HOME "/certs/"
-#define CERT_FILE  HOME "bob1.crt"     // Server Bob1
-#define KEY_FILE  HOME  "private-key.pem"
+#define HOME "./certs/"
+#define CERT_FILE   "bob1-crt.pem"     // Server Bob1
+#define KEY_FILE    "bob1.pem"
 
 /*Password for the key file*/
-#define KEY_PASSWD ""
+#define KEY_PASSWD NULL
 
 
-#define CERT_FILE_CLIENT  HOME "alice1.crt"   // Cleint alice1
-#define KEY_FILE_CLIENT  HOME  "key.pem"
+#define CERT_FILE_CLIENT HOME  "alice1-crt.pem"   // Cleint alice1
+#define KEY_FILE_CLIENT    "alice1-key.pem"
 
 /*Password for the key file*/
-#define KEY_PASSWD_CLIENT ""
+#define KEY_PASSWD_CLIENT "root"
 
 /*Trusted CAs location*/
 #define CA_FILE NULL//"/certs/1024ccert.pem"   // NULL this
-#define CA_DIR HOME  // Use this as we are using chain
+#define CA_DIR "./certs/"  // Use this as we are using chain
 // TO be set
+
+int password_callback_client(char* buf, int size, int rwflag, void* userdata) {
+    const char* password = "root";
+    int password_len = strlen(password);
+    if (size < password_len + 1) {
+        return 0;
+    }
+    strcpy(buf, password);
+    return password_len;
+}
+
+int password_callback_server(char* buf, int size, int rwflag, void* userdata) {
+    const char* password = "";
+    int password_len = strlen(password);
+    if (size < password_len + 1) {
+        return 0;
+    }
+    strcpy(buf, password);
+    return password_len;
+}
 
 int ClientTLS (int &socketfd) {
     int err;
     char buff[32];
 
-    SSL_METHOD *meth;
-    SSL_CTX *ctx;
-    SSL *myssl;
+    
+    
 
        /* Initialize the SSL libraries*/
     SSL_library_init();
     OpenSSL_add_all_algorithms();
     SSL_load_error_strings();
 
-    meth=TLSv1_2_server_method();
+
+    
+    SSL *myssl;
     /*Create a new context block*/
-    ctx=SSL_CTX_new(meth);
+    
+    SSL_CTX* ctx = SSL_CTX_new(TLS_server_method());
+    SSL_CTX_set_min_proto_version(ctx, TLS1_2_VERSION);
+    SSL_CTX_set_max_proto_version(ctx, TLS1_2_VERSION);
+
+DH* dh = DH_new();
+if (dh == NULL) {
+    // Handle error
+}
+
+int codes = DH_generate_parameters_ex(dh, 2048, DH_GENERATOR_2, NULL);
+if (codes != 1) {
+    // Handle error
+}
+
+// Load DH parameters into SSL context
+SSL_CTX_set_tmp_dh(ctx, dh);
+    cout << "done setting up ";
+
+
     if (!ctx) {
         printf("Error creating the context.\n");
         exit(0);
@@ -67,20 +112,22 @@ int ClientTLS (int &socketfd) {
 ///// CERT FILE CLient to be set-----------
     /*Indicate the certificate file to be used*/
     if (SSL_CTX_use_certificate_file(ctx,CERT_FILE_CLIENT, SSL_FILETYPE_PEM) <= 0) {
-        printf("Error setting the certificate file.\n");
+        printf("Error setting the certificate file. alice\n");
+        ERR_print_errors_fp(stderr);
         exit(0);
     }
 
 
 ///// KEy password FILE CLient to be set-----------
 /*Load the password for the Private Key*/
-    SSL_CTX_set_default_passwd_cb_userdata(ctx,KEY_PASSWD_CLIENT);
-
+    // SSL_CTX_set_default_passwd_cb_userdata(ctx,KEY_PASSWD_CLIENT);
+    SSL_CTX_set_default_passwd_cb(ctx, password_callback_client);
 
 ////// KEY FILE CLIENT to be set
     /*Indicate the key file to be used*/
     if (SSL_CTX_use_PrivateKey_file(ctx, KEY_FILE_CLIENT, SSL_FILETYPE_PEM) <= 0) {
         printf("Error setting the key file.\n");
+        ERR_print_errors_fp(stderr);
         exit(0);
     }
 
@@ -95,15 +142,15 @@ int ClientTLS (int &socketfd) {
 
 ///// SET CA_FILE NULL and CA DIR a folder
 /* Set the list of trusted CAs based on the file and/or directory provided*/
-    if(SSL_CTX_load_verify_locations(ctx,CA_FILE,CA_DIR)<1) {
-        printf("Error setting verify location\n");
-        exit(0);
-    }
+    // if(SSL_CTX_load_verify_locations(ctx,CA_FILE,CA_DIR)<1) {
+    //     printf("Error setting verify location\n");
+    //     exit(0);
+    // }
 
 
 
 /* Set for server verification*/
-    SSL_CTX_set_verify(ctx,SSL_VERIFY_PEER,NULL);
+   // SSL_CTX_set_verify(ctx,SSL_VERIFY_PEER,NULL);
 
     
 /*Create new ssl object*/
@@ -125,8 +172,12 @@ int ClientTLS (int &socketfd) {
     if (err<1) {
         err=SSL_get_error(myssl,err);
         printf("SSL error #%d in accept,program terminated\n",err);
-
+        ERR_print_errors_fp(stderr);
         // if(err==5){printf("sockerrno is:%d\n",sock_errno());}
+        long err2 = ERR_get_error();
+    char err_buf[256];
+    ERR_error_string(err2, err_buf);
+    printf("OpenSSL error: %s\n", err_buf);
   
         close(socketfd);
         SSL_free(myssl);
@@ -202,22 +253,41 @@ int ClientTLS (int &socketfd) {
 
 int servertls (int &Connected_socket) {
     char buff[32];
-    SSL_METHOD *meth;
-    SSL_CTX  *ctx;
-    SSL  *myssl;
+    
+    
      /* Initialize the SSL libraries*/
     SSL_library_init();
     OpenSSL_add_all_algorithms();
     SSL_load_error_strings();
 
-    /*Set SSLv23 for the connection*/
-    meth=TLSv1_2_server_method();   // Forcing TLS1.2
-  ctx=SSL_CTX_new(meth);
+    
+
+    DH* dh = DH_new();
+if (dh == NULL) {
+    // Handle error
+}
+
+int codes = DH_generate_parameters_ex(dh, 2048, DH_GENERATOR_2, NULL);
+if (codes != 1) {
+    // Handle error
+}
+
+// Load DH parameters into SSL context
+
+    SSL  *myssl;
+    
+    
+    SSL_CTX* ctx = SSL_CTX_new(TLS_server_method());
+    SSL_CTX_set_min_proto_version(ctx, TLS1_2_VERSION);
+    SSL_CTX_set_max_proto_version(ctx, TLS1_2_VERSION);
+
   if (!ctx) {
     printf("Error creating the context.\n");
     exit(0);
   }
-
+    SSL_CTX_set_tmp_dh(ctx, dh);
+    cout << "done setting up ";
+    
     /*Set the Cipher List*/
   if (SSL_CTX_set_cipher_list(ctx, "ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384") <= 0) {
     printf("Error setting the cipher list.\n");
@@ -226,13 +296,22 @@ int servertls (int &Connected_socket) {
 
 // -------------------------------------------------------------- TO Be set
     // /*Set the certificate to be used.*/    ????????????????????????????????
-  if (SSL_CTX_use_certificate_file(ctx, CERT_FILE, SSL_FILETYPE_PEM) <= 0) {
+  const char * fi = "/certs/bob1-crt.pem" ;
+  if (SSL_CTX_use_certificate_file(ctx, "bob1-crt.pem", SSL_FILETYPE_PEM) <= 0) {
     printf("Error setting the certificate file.\n");
+    ERR_print_errors_fp(stderr);
     exit(0);
   }
 
+//   if (SSL_CTX_use_certificate(ctx, CERT_FILE, SSL_FILETYPE_PEM) <= 0) {
+//     printf("Error setting the certificate file.\n");
+//     exit(0);
+//   }
+  
+
   /*Load the password for the Private Key*/
-  SSL_CTX_set_default_passwd_cb_userdata(ctx,KEY_PASSWD);
+//   SSL_CTX_set_default_passwd_cb_userdata(ctx,KEY_PASSWD);
+SSL_CTX_set_default_passwd_cb(ctx, password_callback_server);
 
   /*Indicate the key file to be used*/
   if (SSL_CTX_use_PrivateKey_file(ctx, KEY_FILE, SSL_FILETYPE_PEM) <= 0) {
@@ -248,13 +327,13 @@ int servertls (int &Connected_socket) {
 // ----------------------- ----------------- CLient Authentication---------------
 
   /*Used only if client authentication will be used*/
-  SSL_CTX_set_verify(ctx,SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT,NULL);
+  //SSL_CTX_set_verify(ctx,SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT,NULL);
 
   /* Load certificates of trusted CAs based on file provided*/
-  if (SSL_CTX_load_verify_locations(ctx,CA_FILE,CA_DIR)<1) {
-    printf("Error setting the verify locations.\n");
-    exit(0);
-  }
+  //if (SSL_CTX_load_verify_locations(ctx,CA_FILE,CA_DIR)<1) {
+   // printf("Error setting the verify locations.\n");
+    //exit(0);
+ // }
 
   /* Set CA list used for client authentication. */
 //   if (SSL_CTX_set_client_CA_list(ctx,CA_FILE) <1) {
@@ -276,7 +355,11 @@ int servertls (int &Connected_socket) {
 
   /* Bind the ssl object with the socket*/
   SSL_set_fd(myssl,Connected_socket);
-
+    // int send_flag =send(Connected_socket,"Ok Go ahead",sizeof("Ok Go ahead"),0);
+    // if (send_flag == -1) {
+    //     cout << "Sending Failed" << endl ;
+    //         // what to do ????
+    // }
   /*Do the SSL Handshake*/
     int err=SSL_accept(myssl);
 
@@ -287,7 +370,13 @@ int servertls (int &Connected_socket) {
   if (err<1) {
     err=SSL_get_error(myssl,err);
     printf("SSL error #%d in SSL_accept,program terminated\n",err);
-    // if(err==5){printf("sockerrno is:%d\n",sock_errno());}
+    ERR_print_errors_fp(stderr);
+    long err2 = ERR_get_error();
+    char err_buf[256];
+    ERR_error_string(err, err_buf);
+    printf("OpenSSL error: %s\n", err_buf);
+   
+   //if(err==5){printf("sockerrno is:%d\n",sock_errno());}
       close(Connected_socket);
       SSL_CTX_free(ctx);
       exit(0);
@@ -318,6 +407,10 @@ int servertls (int &Connected_socket) {
   if(err<1) {
     err=SSL_get_error(myssl,err);
     printf("Error #%d in read,program terminated\n",err);
+    long err2 = ERR_get_error();
+    char err_buf[256];
+    ERR_error_string(err2, err_buf);
+    printf("OpenSSL error: %s\n", err_buf);
 
     /********************************/
     /* If err=6 it means the client */
@@ -416,22 +509,45 @@ int ServerSide () {
     }
 
     
-    while (1){
+    // while (1){
         
-        char buffer[4096] = { 0 };
-        int valread = read(Connected_socket, buffer, 4096);
-        cout << buffer << endl ;
+    //     char buffer[4096] = { 0 };
+    //     int valread = read(Connected_socket, buffer, 4096);
+    //     cout << buffer << endl ;
 
 
-        char mFromS[4096] = { 0 }; 
-        cin >> mFromS ;
-        // mFromS = "Hello, you are connected to the Server\n" ;
-        int send_flag =send(Connected_socket,mFromS,4096,0);
-        if (send_flag == -1) {
-            cout << "Sending Failed" << endl ;
+    //     char mFromS[4096] = { 0 }; 
+    //     cin >> mFromS ;
+    //     // mFromS = "Hello, you are connected to the Server\n" ;
+    //     int send_flag =send(Connected_socket,mFromS,4096,0);
+    //     if (send_flag == -1) {
+    //         cout << "Sending Failed" << endl ;
+    //         // what to do ????
+    //     }
+    // }
+
+    char buffer[4096] = { 0 };
+    int valread = read(Connected_socket, buffer, 4096);
+    cout << buffer << endl ;
+
+    int send_flag =send(Connected_socket,"Hello Lets Chat",sizeof("Hello Lets Chat"),0);
+    if (send_flag == -1) {
+        cout << "Sending Failed" << endl ;
             // what to do ????
-        }
     }
+
+    valread = read(Connected_socket, buffer, 4096);
+    cout << buffer << endl ;
+
+    // Starting TLS
+    int letssee =  servertls(Connected_socket) ;
+
+    // int send_flag =send(Connected_socket,"Ok Go ahead",sizeof("Ok Go ahead"),0);
+    // if (send_flag == -1) {
+    //     cout << "Sending Failed" << endl ;
+    //         // what to do ????
+    // }
+
 
     close(Connected_socket);
 
@@ -470,16 +586,32 @@ int ClientSide () {
     else {
         cout << "Connection Success\n" ;
     }
-    while (1){
+    // while (1){
         
-        char buffer[4096] = {0} ;
-        cin >> buffer ;
-        int sending_flag_client = send(ClientFD,  buffer, 4096, 0);
-        cout << "Message Sent "<< sending_flag_client << endl ;
-        char buffer_in[4096] = {0} ;
-        int valread = read(ClientFD, buffer_in, 4096);
-        cout << buffer_in << endl ;
-    }
+    //     char buffer[4096] = {0} ;
+    //     cin >> buffer ;
+    //     int sending_flag_client = send(ClientFD,  buffer, 4096, 0);
+    //     cout << "Message Sent "<< sending_flag_client << endl ;
+    //     char buffer_in[4096] = {0} ;
+    //     int valread = read(ClientFD, buffer_in, 4096);
+    //     cout << buffer_in << endl ;
+    // }
+
+    
+    
+    int sending_flag_client = send(ClientFD,  "Hello chat starts", sizeof("Hello chat starts"), 0);
+    char buffer_in[4096] = {0} ;
+    int valread = read(ClientFD, buffer_in, 4096);
+    cout << buffer_in << endl ;
+
+    sending_flag_client = send(ClientFD,  "Starting TLS", sizeof("Starting TLS"), 0);
+
+    // valread = read(ClientFD, buffer_in, 4096);
+    // cout << buffer_in << endl ;
+
+    // Start TLS
+    std::this_thread::sleep_for(std::chrono::seconds(5)); 
+    int letsee = ClientTLS(ClientFD) ;
 
     close(ClientFD);
 
