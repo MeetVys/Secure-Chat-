@@ -27,6 +27,169 @@ using namespace std;
 #define CA_DIR  NULL  // Use this as we are using chain
 // TO be set
 
+int ClientTLS (int &socketfd) {
+    int err;
+    char buff[32];
+
+    SSL_METHOD *meth;
+    SSL_CTX *ctx;
+    SSL *myssl;
+
+       /* Initialize the SSL libraries*/
+    SSL_library_init();
+    OpenSSL_add_all_algorithms();
+    SSL_load_error_strings();
+
+    meth=TLSv1_2_server_method();
+    /*Create a new context block*/
+    ctx=SSL_CTX_new(meth);
+    if (!ctx) {
+        printf("Error creating the context.\n");
+        exit(0);
+    }
+
+    /*Set the Cipher List*/
+    if (SSL_CTX_set_cipher_list(ctx, "ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384") <= 0) {
+        printf("Error setting the cipher list.\n");
+        exit(0);
+    }
+
+
+///// CERT FILE CLient to be set-----------
+    /*Indicate the certificate file to be used*/
+    if (SSL_CTX_use_certificate_file(ctx,CERT_FILE_CLIENT, SSL_FILETYPE_PEM) <= 0) {
+        printf("Error setting the certificate file.\n");
+        exit(0);
+    }
+
+
+///// KEy password FILE CLient to be set-----------
+/*Load the password for the Private Key*/
+    SSL_CTX_set_default_passwd_cb_userdata(ctx,KEY_PASSWD_CLIENT);
+
+
+////// KEY FILE CLIENT to be set
+    /*Indicate the key file to be used*/
+    if (SSL_CTX_use_PrivateKey_file(ctx, KEY_FILE_CLIENT, SSL_FILETYPE_PEM) <= 0) {
+        printf("Error setting the key file.\n");
+        exit(0);
+    }
+
+
+
+/*Make sure the key and certificate file match*/
+    if (SSL_CTX_check_private_key(ctx) == 0) {
+        printf("Private key does not match the certificate public key\n");
+        exit(0);
+    }
+
+
+///// SET CA_FILE NULL and CA DIR a folder
+/* Set the list of trusted CAs based on the file and/or directory provided*/
+    if(SSL_CTX_load_verify_locations(ctx,CA_FILE,CA_DIR)<1) {
+        printf("Error setting verify location\n");
+        exit(0);
+    }
+
+
+
+/* Set for server verification*/
+    SSL_CTX_set_verify(ctx,SSL_VERIFY_PEER,NULL);
+
+    
+/*Create new ssl object*/
+    myssl=SSL_new(ctx);
+
+    if(!myssl) {
+        printf("Error creating SSL structure.\n");
+        exit(0);
+    }
+
+
+/*Bind the socket to the SSL structure*/
+    SSL_set_fd(myssl,socketfd);
+
+/*Connect to the server, SSL layer.*/
+    err=SSL_connect(myssl);
+
+    /*Check for error in connect.*/
+    if (err<1) {
+        err=SSL_get_error(myssl,err);
+        printf("SSL error #%d in accept,program terminated\n",err);
+
+        if(err==5){printf("sockerrno is:%d\n",sock_errno());}
+  
+        close(socketfd);
+        SSL_free(myssl);
+        SSL_CTX_free(ctx);
+        exit(0);
+    }
+
+/*Print out connection details*/
+    printf("SSL connection on socket %x,Version: %s, Cipher: %s\n",
+       socketfd,
+       SSL_get_version(myssl),
+       SSL_get_cipher(myssl));
+
+/*Send message to the server.*/
+    err=SSL_write(myssl,"Hello there!!!!",sizeof("Hello there!!!!")+1);
+/*Check for error in write.*/
+    if(err<1) {
+    err=SSL_get_error(myssl,err);
+    printf("Error #%d in write,program terminated\n",err);
+   /********************************/
+   /* If err=6 it means the server */
+   /* issued an SSL_shutdown. You  */
+   /* must respond with a shutdown */
+   /* to complete a graceful       */
+   /* shutdown                     */
+   /********************************/
+    if(err==6)
+        SSL_shutdown(myssl);
+    SSL_free(myssl);
+    close(socketfd);
+    SSL_CTX_free(ctx);
+    exit(0);
+    }
+
+/*Read servers response.*/
+    err = SSL_read (myssl, buff, sizeof(buff));
+/*Check for error in read.*/
+    if(err<1) {
+        err=SSL_get_error(myssl,err);
+        printf("Error #%d in read,program terminated\n",err);
+   /********************************/
+   /* If err=6 it means the server */
+   /* issued an SSL_shutdown. You  */
+   /* must respond with a shutdown */
+   /* to complete a graceful       */
+   /* shutdown                     */
+   /********************************/
+    if(err==6)
+        SSL_shutdown(myssl);
+    SSL_free(myssl);
+    close(socketfd);
+    SSL_CTX_free(ctx);
+    exit(0);
+    }
+
+    printf("Server said: %s\n",buff);
+
+    err=SSL_shutdown(myssl);
+
+    if(err<0)
+        printf("Error in shutdown\n");
+    else if(err==1)
+        printf("Client exited gracefully\n");
+
+    close(socketfd);
+    SSL_free(myssl);
+    SSL_CTX_free(ctx);
+    exit(0);
+
+
+
+}
 
 int servertls (int &Connected_socket) {
     char buff[32];
@@ -38,7 +201,7 @@ int servertls (int &Connected_socket) {
     OpenSSL_add_all_algorithms();
     SSL_load_error_strings();
 
-    /*Set TLSv1_2 for the connection*/
+    /*Set SSLv23 for the connection*/
   meth=TLSv1_2_server_method();   // Forcing TLS1.2
   ctx=SSL_CTX_new(meth);
   if (!ctx) {
