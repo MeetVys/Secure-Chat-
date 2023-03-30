@@ -14,7 +14,7 @@
 #include <openssl/x509_vfy.h>
 
 #define SERVER_IP "127.0.0.1"
-#define SERVER_PORT 8445
+#define SERVER_PORT 8988
 #define CERT_FILE "bob1-crt.pem"
 #define CA_CERTS_DIR "/certswe"
 
