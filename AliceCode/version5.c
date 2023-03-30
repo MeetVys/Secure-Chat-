@@ -1,25 +1,20 @@
-#include <bits/stdc++.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-#include <chrono>   // for std::chrono::seconds
-#include <thread>
-
-// #include <tpf/tpfeq.h>
-// #include <tpf/tpfio.h>
+#include <string.h>
+#include <errno.h>
 #include <sys/types.h>
 #include <openssl/crypto.h>
 #include <openssl/x509.h>
 #include <openssl/pem.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
- #include <openssl/bio.h>
-using namespace std;
-#define PORT 8080
+#include <openssl/bio.h>
+
+#define PORT 5454
 
 // To be set
 #define HOME "./certs/"
@@ -30,8 +25,8 @@ using namespace std;
 #define KEY_PASSWD NULL
 
 
-#define CERT_FILE_CLIENT HOME  "alice1-crt.pem"   // Cleint alice1
-#define KEY_FILE_CLIENT    "alice1-key.pem"
+#define CERT_FILE_CLIENT   "bob1-cert.pem"   // Cleint alice1
+#define KEY_FILE_CLIENT    "bob1.pem"
 
 /*Password for the key file*/
 #define KEY_PASSWD_CLIENT "root"
@@ -61,7 +56,7 @@ int password_callback_server(char* buf, int size, int rwflag, void* userdata) {
     return password_len;
 }
 
-int ClientTLS (int &socketfd) {
+int ClientTLS (int socketfd) {
     int err;
     char buff[32];
 
@@ -80,8 +75,8 @@ int ClientTLS (int &socketfd) {
     /*Create a new context block*/
     
     SSL_CTX* ctx = SSL_CTX_new(TLS_server_method());
-    SSL_CTX_set_min_proto_version(ctx, TLS1_2_VERSION);
-    SSL_CTX_set_max_proto_version(ctx, TLS1_2_VERSION);
+    // SSL_CTX_set_min_proto_version(ctx, TLS1_2_VERSION);
+    // SSL_CTX_set_max_proto_version(ctx, TLS1_2_VERSION);
 
 
 
@@ -102,7 +97,7 @@ int ClientTLS (int &socketfd) {
 
 ///// CERT FILE CLient to be set-----------
     /*Indicate the certificate file to be used*/
-    if (SSL_CTX_use_certificate_file(ctx,CERT_FILE_CLIENT, SSL_FILETYPE_PEM) <= 0) {
+    if (SSL_CTX_use_certificate_file(ctx,"bob1-crt.pem", SSL_FILETYPE_PEM) <= 0) {
         printf("Error setting the certificate file. alice\n");
         ERR_print_errors_fp(stderr);
         exit(0);
@@ -112,11 +107,11 @@ int ClientTLS (int &socketfd) {
 ///// KEy password FILE CLient to be set-----------
 /*Load the password for the Private Key*/
     // SSL_CTX_set_default_passwd_cb_userdata(ctx,KEY_PASSWD_CLIENT);
-    SSL_CTX_set_default_passwd_cb(ctx, password_callback_client);
+    // SSL_CTX_set_default_passwd_cb(ctx, password_callback_client);
 
 ////// KEY FILE CLIENT to be set
     /*Indicate the key file to be used*/
-    if (SSL_CTX_use_PrivateKey_file(ctx, KEY_FILE_CLIENT, SSL_FILETYPE_PEM) <= 0) {
+    if (SSL_CTX_use_PrivateKey_file(ctx, KEY_FILE, SSL_FILETYPE_PEM) <= 0) {
         printf("Error setting the key file.\n");
         ERR_print_errors_fp(stderr);
         exit(0);
@@ -242,7 +237,7 @@ int ClientTLS (int &socketfd) {
 
 }
 
-int servertls (int &Connected_socket) {
+int servertls (int Connected_socket) {
     char buff[32];
     
     
@@ -256,8 +251,8 @@ int servertls (int &Connected_socket) {
     
     
     SSL_CTX* ctx = SSL_CTX_new(TLS_server_method());
-    SSL_CTX_set_min_proto_version(ctx, TLS1_2_VERSION);
-    SSL_CTX_set_max_proto_version(ctx, TLS1_2_VERSION);
+    // SSL_CTX_set_min_proto_version(ctx, TLS1_2_VERSION);
+    // SSL_CTX_set_max_proto_version(ctx, TLS1_2_VERSION);
 
   if (!ctx) {
     printf("Error creating the context.\n");
@@ -451,40 +446,40 @@ int ServerSide () {
     int ServerFD = socket(AF_INET, SOCK_STREAM, 0) ;  // TCP / IP IPv4
 
     if (ServerFD < 0){
-        cout << "Socket Creation Failed" << endl;
+         printf("Socket Creation Failed\n") ;
         return -1 ;    
     }
 
     
     struct sockaddr_in address ;
     address.sin_family = AF_INET;
-    address.sin_addr.s_addr = INADDR_ANY;
+    address.sin_addr.s_addr = htonl(INADDR_ANY);
     address.sin_port = htons(PORT);
 
     int bind_flag = bind(ServerFD,(struct sockaddr*)&address,sizeof(address));
 
     if (bind_flag <0){
-        cout << "Binding Failed" << endl  ;
+        printf("Binding Failed\n")  ;
         return -1 ;
 
     }
 
-    int listen_falg = listen(ServerFD,3);
-    cout << "Listening \n" ;
+    int listen_falg = listen(ServerFD,5);
+    printf("Listening \n") ;
     if (listen_falg <0){
-        cout << "Listening Falied" << endl  ;
+        printf("Listening Falied\n")  ;
         return -1 ;
     }
 
     struct sockaddr_in ClientAddress ;
     socklen_t addrlen = sizeof(ClientAddress);
-    cout << "accepting\n";
+    printf("accepting\n");
 
     
     int Connected_socket= accept(ServerFD, (struct sockaddr*)&ClientAddress,(socklen_t*)&addrlen) ;
 
     if (Connected_socket<0){
-        cout << "Acception Failed" << endl ;
+        printf("Acception Failed\n")  ;
         return -1 ;
     }
 
@@ -508,16 +503,16 @@ int ServerSide () {
 
     char buffer[4096] = { 0 };
     int valread = read(Connected_socket, buffer, 4096);
-    cout << buffer << endl ;
+    printf("%s\n",buffer) ;
 
     int send_flag =send(Connected_socket,"Hello Lets Chat",sizeof("Hello Lets Chat"),0);
     if (send_flag == -1) {
-        cout << "Sending Failed" << endl ;
+        printf("Sending Failed\n");
             // what to do ????
     }
 
     valread = read(Connected_socket, buffer, 4096);
-    cout << buffer << endl ;
+    printf("%s\n",buffer) ;
 
     // Starting TLS
     int letssee =  servertls(Connected_socket) ;
@@ -542,14 +537,14 @@ int ClientSide () {
     int ClientFD = socket(AF_INET, SOCK_STREAM, 0) ;  // TCP / IP IPv4
 
     if (ClientFD < 0){
-        cout << "Socket Creation Failed" << endl;
+        printf("Socket Creation Failed\n");
         return -1 ;    
     }
 
 
     struct sockaddr_in ServerAddress ;
     ServerAddress.sin_family = AF_INET;
-    //ServerAddress.sin_addr.s_addr = inet_addr("127.0.0.2");
+    ServerAddress.sin_addr.s_addr = inet_addr("127.0.0.1");
     ServerAddress.sin_port = htons(PORT);
     
      if (inet_pton(AF_INET, "127.0.0.1", &ServerAddress.sin_addr)
@@ -561,10 +556,10 @@ int ClientSide () {
 
     int connect_flag=connect(ClientFD,(struct sockaddr*)&ServerAddress,sizeof(ServerAddress));
     if (connect_flag <0){
-        cout << "Coonect falg";
+        printf("Coonect falg\n");
     }
     else {
-        cout << "Connection Success\n" ;
+        printf("Connection Success\n") ;
     }
     // while (1){
         
@@ -582,7 +577,7 @@ int ClientSide () {
     int sending_flag_client = send(ClientFD,  "Hello chat starts", sizeof("Hello chat starts"), 0);
     char buffer_in[4096] = {0} ;
     int valread = read(ClientFD, buffer_in, 4096);
-    cout << buffer_in << endl ;
+    printf("%s\n",buffer_in) ;
 
     sending_flag_client = send(ClientFD,  "Starting TLS", sizeof("Starting TLS"), 0);
 
@@ -590,7 +585,7 @@ int ClientSide () {
     // cout << buffer_in << endl ;
 
     // Start TLS
-    std::this_thread::sleep_for(std::chrono::seconds(5)); 
+   
     int letsee = ClientTLS(ClientFD) ;
 
     close(ClientFD);
@@ -601,26 +596,26 @@ int ClientSide () {
 
 int main (int argc, char** argv) {
 
-    cout << argc << endl ;
-    cout << argv[0] << " " << argv[1] << endl ;
+  
+    printf("%d\n",argc) ;
     if ((argv[1][0] == '-' && argv[1][1] == 'S') && argv[1][2]== '\0')  {
-        cout << "Server Matched \n" ;
+        printf( "Server Matched \n") ;
         int function_flag = ServerSide() ;
         if (function_flag == 1){
-            cout << "Server Successfully executed\n" ; 
+            printf("Server Successfully executed\n") ; 
         }
     }
 
     else if ((argv[1][0] == '-' && argv[1][1] == 'C') && argv[1][2]== '\0') {
-        cout << "Client Matched \n" ;
+        printf("Client Matched \n") ;
         int function_flag = ClientSide() ;
         if (function_flag == 1){
-            cout << "Client Successfully executed\n" ; 
+            printf("Client Successfully executed\n") ; 
         }
     }
 
     else {
-        cout << "no valid command" << endl ;
+        printf("no valid command\n")  ;
     }
 
     return 0 ;
