@@ -14,7 +14,7 @@
 #include <openssl/x509_vfy.h>
 
 #define SERVER_IP "127.0.0.1"
-#define SERVER_PORT 8443
+#define SERVER_PORT 8445
 #define CERT_FILE "bob1-crt.pem"
 #define CA_CERTS_DIR "/certswe"
 
@@ -44,7 +44,24 @@ int main()
         perror("connect() failed");
         exit(EXIT_FAILURE);
     }
-
+    int sending_flag_client = send(sockfd,  "Hello chat starts", sizeof("Hello chat starts"), 0);
+    printf("Client >>>>> Hello chat starts\n");
+    char buffer_in[1024] ={0} ;
+    int valread = read(sockfd, buffer_in, sizeof(buffer_in));
+    printf("Server >>>>>%s\n",buffer_in) ;
+    char buffer1[1024] = {0};
+    while (1){
+        printf("Client >>>>> ");
+        scanf("%s",buffer1) ;
+        sending_flag_client = send(sockfd,  buffer1, sizeof(buffer1), 0);
+        
+        printf("Server >>>>> ") ;
+        valread = read(sockfd, buffer_in, sizeof(buffer_in));
+        printf("%s\n",buffer_in) ;
+        if (strcmp(buffer_in,"OK_START_TLS")==0){
+            break ;
+        }
+    }
     
 
     // create a new SSL context
@@ -121,29 +138,41 @@ int main()
         // handle error
     }
 
-    // send data to the server
-    char *message = "Hello, server!";
-    int len = SSL_write(ssl, message, strlen(message));
-    if (len < 0)
-    {
-        perror("SSL_write() failed");
-        SSL_shutdown(ssl);
-        SSL_free(ssl);
-        exit(EXIT_FAILURE);
-    }
+    printf("\n\n----------------------Chat is now Encrypte--------------------------------------------\n") ;
 
+    while(1){
+        // send data to the server
+        char message[1024] ={0} ;
+        printf("Client >>>> ") ;
+        scanf("%s",message) ;
+        int len = SSL_write(ssl, message, strlen(message));
+        if (len < 0){
+            perror("SSL_write() failed");
+            SSL_shutdown(ssl);
+            SSL_free(ssl);
+            exit(EXIT_FAILURE);
+        }
+        if (strcmp(message,"OK_BYE")==0) {
+            break; 
+        }
     // receive a response from the server
-    char buffer[1024] = {0};
-    len = SSL_read(ssl, buffer, sizeof(buffer));
-    if (len < 0)
-    {
-        perror("SSL_read() failed");
-        SSL_shutdown(ssl);
-        SSL_free(ssl);
-        exit(EXIT_FAILURE);
-    }
-    printf("Received message: %s\n", buffer);
+        char buffer[1024] = {0};
+        len = SSL_read(ssl, buffer, sizeof(buffer));
+        if (len < 0){
+            perror("SSL_read() failed");
+            SSL_shutdown(ssl);
+            SSL_free(ssl);
+            exit(EXIT_FAILURE);
+        }
+        printf("Received message: %s\n", buffer);
 
+        if (strcmp(buffer,"OK_BYE")==0) {
+            break; 
+        }
+
+    }
+
+    
     // close the SSL connection and clean up
     SSL_shutdown(ssl);
     SSL_free(ssl);

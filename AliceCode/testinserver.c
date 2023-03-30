@@ -12,6 +12,7 @@
 #define CERT_FILE "bob1-crt.pem"
 #define KEY_FILE "bob1.pem"
 
+int strcmp (const char* str1, const char* str2);
 int main() {
     // initialize OpenSSL library
     SSL_library_init();
@@ -29,7 +30,7 @@ int main() {
     struct sockaddr_in server_addr = {0};
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    server_addr.sin_port = htons(8444);
+    server_addr.sin_port = htons(8445);
     if (bind(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
         perror("bind() failed");
         exit(EXIT_FAILURE);
@@ -59,14 +60,56 @@ int main() {
     }
 
     // accept incoming connections and handle them
+    printf("Meet Vyas\n") ;
     while (1) {
+        printf("while Meet Vyas\n") ;
+
         // accept a new connection
         struct sockaddr_in client_addr = {0};
         socklen_t client_addr_len = sizeof(client_addr);
+         printf("Meet Vyas before acceot \n") ;
         int clientfd = accept(sockfd, (struct sockaddr*)&client_addr, &client_addr_len);
+         printf("Meet Vyas after\n") ;
         if (clientfd < 0) {
             perror("accept() failed");
             continue;
+        }
+        printf("Meet Vyas\n") ;
+        char buffer1[1024] ={0} ;
+        int valread = read(clientfd, buffer1, sizeof(buffer1));
+        printf("Client >>>>>> %s\n",buffer1) ;
+        int send_flag =send(clientfd,"Hello Lets Chat unencrypted",sizeof("Hello Lets Chat unencrypted"),0);
+        printf("Server >>>>>> Hello Lets Chat unencrypted\n") ;
+        if (send_flag == -1) {
+            printf("Sending Failed\n");
+            // what to do ????
+        }
+        int wfg = 1;
+        while (wfg){
+            printf("Client >>>>>> ") ;
+            valread = read(clientfd, buffer1, sizeof(buffer1));
+            
+            printf("%s\n",buffer1) ;
+            if (strcmp(buffer1,"START_TLS")==0){
+                wfg =0 ;
+                send_flag =send(clientfd,"OK_START_TLS",sizeof("OK_START_TLS"),0);
+                printf("Server >>>>>> OK_START_TLS\n") ;
+                if (send_flag == -1) {
+                    printf("Sending Failed\n");
+                   
+                }
+
+                break ;
+            }
+                
+            printf("Server >>>>> ");
+            scanf("%s",buffer1) ;
+            send_flag =send(clientfd,buffer1,sizeof(buffer1),0);
+           
+            if (send_flag == -1) {
+                printf("Sending Failed\n");
+            // what to do ????
+            }
         }
 
         // create a new SSL object
@@ -94,19 +137,39 @@ int main() {
         }
 
         // receive data from the client
-        char buffer[1024] = {0};
-        int len = SSL_read(ssl, buffer, sizeof(buffer));
-        if (len < 0) {
-            perror("SSL_read() failed");
-            SSL_shutdown(ssl);
-            SSL_free(ssl);
-            close(clientfd);
-            continue;
-        }
-        printf("Received message: %s\n", buffer);
-
+        printf("\n\n----------------------Chat is now Encrypte--------------------------------------------\n") ;
+        while(1){
+            char buffer[1024] = {0};
+            int len = SSL_read(ssl, buffer, sizeof(buffer));
+            if (len < 0) {
+                perror("SSL_read() failed");
+                SSL_shutdown(ssl);
+                SSL_free(ssl);
+                close(clientfd);
+                continue;
+            }
+            printf("Received message: %s\n", buffer);
+            if (strcmp(buffer,"OK_BYE")==0){
+                break;
+            }
         // send a response back to the client
-        char* response = "Hello, client!";
-        len = SSL_write(ssl, response, strlen(response));
-}
+            char response[1024] = {0} ;
+            printf("Server >>>> ") ;
+            scanf("%s",response) ;
+            len = SSL_write(ssl, response, strlen(response));
+
+            if (strcmp(response,"OK_BYE")==0){
+                break;
+            }
+
+        }
+        SSL_shutdown(ssl);
+        SSL_free(ssl);
+        close(clientfd);
+        
+    }
+
+
+    
+    SSL_CTX_free(ctx);
 }
