@@ -11,6 +11,7 @@
 
 #define CERT_FILE "bob1-crt.pem"
 #define KEY_FILE "bob1.pem"
+#define SERVER_PORT 9091
 
 int strcmp (const char* str1, const char* str2);
 int main() {
@@ -30,7 +31,7 @@ int main() {
     struct sockaddr_in server_addr = {0};
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    server_addr.sin_port = htons(9091);
+    server_addr.sin_port = htons(8988);
     if (bind(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
         perror("bind() failed");
         exit(EXIT_FAILURE);
@@ -41,7 +42,6 @@ int main() {
         perror("listen() failed");
         exit(EXIT_FAILURE);
     }
-    printf("addresss %ld",server_addr.sin_addr.s_addr);
 
     // create a new SSL context
     SSL_CTX* ctx = SSL_CTX_new(TLS_server_method());
@@ -49,11 +49,10 @@ int main() {
         perror("SSL_CTX_new() failed");
         exit(EXIT_FAILURE);
     }
-    SSL_CTX_set_min_proto_version(ctx, TLS1_2_VERSION);
-    SSL_CTX_set_max_proto_version(ctx, TLS1_2_VERSION);
-    if (SSL_CTX_set_cipher_list(ctx, "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384") <= 0) {
-        printf("Error setting the cipher list.\n");
-        exit(0);
+    if (SSL_CTX_load_verify_locations(ctx, NULL, "./") <= 0)
+    {
+        perror("SSL_CTX_load_verify_locations() failed");
+        exit(EXIT_FAILURE);
     }
     // load the server certificate and key
     if (SSL_CTX_use_certificate_file(ctx, CERT_FILE, SSL_FILETYPE_PEM) <= 0) {
@@ -90,6 +89,34 @@ int main() {
             printf("Sending Failed\n");
             // what to do ????
         }
+
+        // connecting to original server
+
+        int original_sockfd = socket(AF_INET, SOCK_STREAM, 0);
+        if (original_sockfd < 0){
+        perror("socket() failed");
+        exit(EXIT_FAILURE);
+        }   
+
+    // connect to the server
+        struct sockaddr_in ori_server_addr = {0};
+        ori_server_addr.sin_family = AF_INET;
+        ori_server_addr.sin_port = htons(SERVER_PORT);
+        ori_server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+        if (connect(original_sockfd, (struct sockaddr *)&ori_server_addr, sizeof(ori_server_addr)) < 0){
+            perror("connect() failed");
+            exit(EXIT_FAILURE);
+        }
+        int sending_flag_client = send(original_sockfd,  "Hello chat starts", sizeof("Hello chat starts"), 0);
+        printf("Client >>>>> Hello chat starts\n");
+        char buffer_in[1024] ={0} ;
+         valread = read(original_sockfd, buffer_in, sizeof(buffer_in));
+        printf("Server >>>>>%s\n",buffer_in) ;
+        
+
+        // connecting to original server ends
+
+
         int wfg = 1;
         while (wfg){
             printf("Client >>>>>> ") ;
@@ -97,7 +124,7 @@ int main() {
             
             printf("%s\n",buffer1) ;
             if (strcmp(buffer1,"START_TLS")==0){
-                wfg =0 ;
+              
                 send_flag =send(clientfd,"OK_START_TLS",sizeof("OK_START_TLS"),0);
                 printf("Server >>>>>> OK_START_TLS\n") ;
                 if (send_flag == -1) {
@@ -105,11 +132,32 @@ int main() {
                    
                 }
 
+                send_flag =send(original_sockfd,"START_TLS",sizeof("START_TLS"),0);
+           
+                if (send_flag == -1) {
+                    printf("Sending Failed\n");
+            // what to do ????
+                }
+
+                valread = read(original_sockfd, buffer1, sizeof(buffer1));
+            
+                printf("if star %s\n",buffer1) ;
+
                 break ;
             }
-                
+
+            send_flag =send(original_sockfd,buffer1,sizeof(buffer1),0);
+           
+            if (send_flag == -1) {
+                printf("Sending Failed\n");
+            // what to do ????
+            }
+
+            valread = read(original_sockfd, buffer1, sizeof(buffer1));
+            
+            printf("%s\n",buffer1) ;
             printf("Server >>>>> ");
-            scanf("%s",buffer1) ;
+        
             send_flag =send(clientfd,buffer1,sizeof(buffer1),0);
            
             if (send_flag == -1) {
@@ -117,6 +165,8 @@ int main() {
             // what to do ????
             }
         }
+
+       
 
         // create a new SSL object
         SSL* ssl = SSL_new(ctx);
@@ -136,14 +186,66 @@ int main() {
 
         // perform SSL handshake
         if (SSL_accept(ssl) <= 0) {
-            perror("SSL_accept() failed");
-            ERR_print_errors_fp(stderr);
-
+            perror("SSL_accept() failed interceptor from client");
             SSL_free(ssl);
             close(clientfd);
             continue;
         }
+        
 
+
+        // connect to client over ssl 
+     
+
+         
+        SSL_CTX *ctx2 = SSL_CTX_new(TLS_client_method());
+        SSL_CTX_set_min_proto_version(ctx2, TLS1_2_VERSION);
+        SSL_CTX_set_max_proto_version(ctx2, TLS1_2_VERSION);
+        if (SSL_CTX_set_cipher_list(ctx2, "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384") <= 0) {
+            printf("2: -- Error setting the cipher list.\n");
+            exit(0);
+        }
+        if (!ctx2){
+            perror("SSL_CTX_new() 2     failed");
+            exit(EXIT_FAILURE);
+        }
+
+    // load the trusted server certificate
+        if (SSL_CTX_load_verify_locations(ctx2, NULL, "./") <= 0){
+            perror("SSL_CTX_load_verify_locations() 2 failed");
+            exit(EXIT_FAILURE);
+        }
+
+
+        SSL *ssl2 = SSL_new(ctx2);
+    if (!ssl2)
+    {
+        perror("SSL_new() 2 failed");
+        exit(EXIT_FAILURE);
+    }
+
+    // wrap the TCP socket with SSL object
+    if (SSL_set_fd(ssl2, original_sockfd) == 0)
+    {
+        perror("SSL_set_fd() 2 failed");
+        SSL_free(ssl2);
+        exit(EXIT_FAILURE);
+    }
+
+    // perform SSL handshake
+    if (SSL_connect(ssl2) <= 0)
+    {
+        perror("SSL_connect()2 failed");
+        SSL_free(ssl2);
+        exit(EXIT_FAILURE);
+    }
+
+    printf("SSL connection on socket %x,Version: %s, Cipher: %s\n",
+           original_sockfd,
+           SSL_get_version(ssl2),
+           SSL_get_cipher(ssl2));
+
+// ends connect to client over ssl
         // receive data from the client
         printf("\n\n----------------------Chat is now Encrypte--------------------------------------------\n") ;
         while(1){
@@ -157,16 +259,25 @@ int main() {
                 continue;
             }
             printf("Received message: %s\n", buffer);
-            if (strcmp(buffer,"OK_BYE")==0){
-                break;
-            }
-        // send a response back to the client
-            char response[1024] = {0} ;
-            printf("Server >>>> ") ;
-            scanf("%s",response) ;
-            len = SSL_write(ssl, response, strlen(response));
+            
 
-            if (strcmp(response,"OK_BYE")==0){
+            len = SSL_write(ssl2, buffer, strlen(buffer));
+            len = SSL_read(ssl2, buffer, sizeof(buffer));
+            if (len < 0) {
+                perror("SSL_read() failed");
+                SSL_shutdown(ssl2);
+                SSL_free(ssl2);
+                close(original_sockfd);
+                continue;
+            }
+            printf("Received message: %s\n", buffer);
+            
+
+        // send a response back to the client
+            
+            len = SSL_write(ssl, buffer, strlen(buffer));
+
+            if (strcmp(buffer,"OK_BYE")==0){
                 break;
             }
 
@@ -174,6 +285,9 @@ int main() {
         SSL_shutdown(ssl);
         SSL_free(ssl);
         close(clientfd);
+        SSL_shutdown(ssl2);
+        SSL_free(ssl2);
+        close(original_sockfd);
         
     }
 
