@@ -37,7 +37,7 @@ char *fhostname(char *hostname)
 
 int main()
 {
-    printf("%s\n", fhostname("www.google.com"));
+    // printf("%s\n", fhostname("www.google.com"));
     // initialize OpenSSL library
     SSL_library_init();
     OpenSSL_add_all_algorithms();
