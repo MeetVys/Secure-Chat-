@@ -13,7 +13,7 @@
 #define KEY_FILE "bob1.pem"
 #define SERVER_PORT 9091
 
-int strcmp (const char* str1, const char* str2);
+
 int main() {
     // initialize OpenSSL library
     SSL_library_init();

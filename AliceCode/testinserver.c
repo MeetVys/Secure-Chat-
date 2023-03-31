@@ -60,6 +60,8 @@ int main()
     }
     SSL_CTX_set_min_proto_version(ctx, TLS1_2_VERSION);
     SSL_CTX_set_max_proto_version(ctx, TLS1_2_VERSION);
+    SSL_CTX_set_session_id_context(ctx, (const unsigned char *)"my_app", strlen("my_app"));
+
     if (SSL_CTX_set_cipher_list(ctx, "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384") <= 0)
     {
         printf("Error setting the cipher list.\n");
@@ -177,6 +179,15 @@ int main()
             SSL_free(ssl);
             close(clientfd);
             continue;
+        }
+
+        if (SSL_session_reused(ssl))
+        {
+            printf("Session resumed\n");
+        }
+        else
+        {
+            printf("New session negotiated\n");
         }
 
         // receive data from the client

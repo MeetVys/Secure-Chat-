@@ -18,6 +18,8 @@
 #define CERT_FILE_CLIENT "alice1-crt.pem"
 #define KEY_FILE_CLIENT "alice1-key.pem"
 #define CA_CERTS_DIR "./"
+#define SESSION_ID_FILE "session_id.bin"
+#define SESSION_ID_FILE2 "session_id2.bin"
 
 int main()
 {
@@ -58,7 +60,8 @@ int main()
         scanf("%s", buffer1);
         sending_flag_client = send(sockfd, buffer1, sizeof(buffer1), 0);
 
-        if (strcmp(buffer1,"OK_BYE") ==0){
+        if (strcmp(buffer1, "OK_BYE") == 0)
+        {
             printf("Client has closed the TCP with Server by itself\n");
             break;
         }
@@ -71,7 +74,8 @@ int main()
             wfg = 0;
             break;
         }
-        if (strcmp(buffer_in,"OK_BYE")==0){
+        if (strcmp(buffer_in, "OK_BYE") == 0)
+        {
             printf("Client has closed the TCP with Server by Server\n");
             break;
         }
@@ -84,6 +88,7 @@ int main()
         SSL_CTX *ctx = SSL_CTX_new(TLS_client_method());
         SSL_CTX_set_min_proto_version(ctx, TLS1_2_VERSION);
         SSL_CTX_set_max_proto_version(ctx, TLS1_2_VERSION);
+
         if (SSL_CTX_set_cipher_list(ctx, "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384") <= 0)
         {
             printf("Error setting the cipher list.\n");
@@ -102,7 +107,50 @@ int main()
             exit(EXIT_FAILURE);
         }
 
+
+/// ssession resumption
+        SSL_SESSION *session = NULL;
+        
+        FILE *fp = fopen(SESSION_ID_FILE, "rb");
+        if (fp != NULL)
+        {
+            session = PEM_read_SSL_SESSION(fp, NULL, 0, NULL);
+            fclose(fp);
+        }
+        else
+            printf("fp null\n");
+
+
+        if (session == NULL)
+        {
+            printf("NULL session key ");
+        }
+        else
+            printf("Not null Session ");
+
+        
+
+
+        fp = fopen(SESSION_ID_FILE2, "wb");
+        if (fp != NULL)
+        {
+            PEM_write_SSL_SESSION(fp, session);
+            fclose(fp);
+        }
+
+
+
+
+        // SSL_CTX_set_session(ctx, session);
+
+
+
+
+//// session resumption till here
+
         SSL *ssl = SSL_new(ctx);
+        SSL_set_session_id_context(ssl, (const unsigned char *)"my_app", strlen("my_app"));
+
         if (!ssl)
         {
             perror("SSL_new() failed");
@@ -118,11 +166,27 @@ int main()
         }
 
         // perform SSL handshake
+        SSL_set_session(ssl,session);
+                
         if (SSL_connect(ssl) <= 0)
         {
             perror("SSL_connect() failed");
             SSL_free(ssl);
             exit(EXIT_FAILURE);
+        }
+
+        // storing session
+        // session = SSL_get_session(ssl);
+        // fp = fopen(SESSION_ID_FILE, "wb");
+        // SSL_SESSION_print_fp(fp, session);
+        // fclose(fp);
+
+        session = SSL_get1_session(ssl);
+        fp = fopen(SESSION_ID_FILE, "wb");
+        if (fp != NULL)
+        {
+            PEM_write_SSL_SESSION(fp, session);
+            fclose(fp);
         }
 
         printf("SSL connection on socket %x,Version: %s, Cipher: %s\n",
