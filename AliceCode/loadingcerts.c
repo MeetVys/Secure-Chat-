@@ -9,6 +9,7 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <openssl/bio.h>
+#include <netdb.h>
 
 #include <openssl/x509.h>
 #include <openssl/x509_vfy.h>
@@ -22,6 +23,25 @@
 #define CA_CERTS_DIR "./"
 #define SESSION_ID_FILE "session_id.bin"
 #define SESSION_ID_FILE2 "session_id2.bin"
+
+char *fhostname(char *hostname1)
+{
+    const char *hostname = "www.google.com";
+    struct hostent *host_info = gethostbyname(hostname);
+    printf("set one\n");
+
+    if (host_info != NULL)
+    {
+        printf("Hostname: %s\n", hostname);
+        printf("IP Address: %s\n", inet_ntoa(*(struct in_addr *)host_info->h_addr_list[0]));
+    }
+    else
+    {
+        printf("Failed to resolve hostname %s\n", hostname);
+    }
+
+    return inet_ntoa(*(struct in_addr *)host_info->h_addr_list[0]);
+}
 
 int main()
 {
@@ -43,7 +63,7 @@ int main()
     struct sockaddr_in server_addr = {0};
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(SERVER_PORT);
-    server_addr.sin_addr.s_addr = inet_addr(SERVER_IP);
+    server_addr.sin_addr.s_addr = inet_addr(fhostname("bob1"));
     if (connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
     {
         perror("connect() failed");

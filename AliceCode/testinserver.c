@@ -8,6 +8,7 @@
 #include <netinet/in.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+#include <netdb.h>
 
 #define CERT_FILE_SERVER "bob1-crt.pem"
 #define KEY_FILE_SERVER "bob1.pem"
@@ -15,8 +16,28 @@
 #define SERVER_IP "127.0.0.1"
 #define PORT_SERVER 9091
 
+char *fhostname(char *hostname1)
+{
+    const char *hostname = "www.google.com";
+    struct hostent *host_info = gethostbyname(hostname);
+    printf("set one\n");
+
+    if (host_info != NULL)
+    {
+        printf("Hostname: %s\n", hostname);
+        printf("IP Address: %s\n", inet_ntoa(*(struct in_addr *)host_info->h_addr_list[0]));
+    }
+    else
+    {
+        printf("Failed to resolve hostname %s\n", hostname);
+    }
+
+    return inet_ntoa(*(struct in_addr *)host_info->h_addr_list[0]);
+}
+
 int main()
 {
+    printf("%s\n", fhostname("www.google.com"));
     // initialize OpenSSL library
     SSL_library_init();
     OpenSSL_add_all_algorithms();
@@ -33,7 +54,7 @@ int main()
     // bind to a local address and port
     struct sockaddr_in server_addr = {0};
     server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = inet_addr(SERVER_IP);
+    server_addr.sin_addr.s_addr = inet_addr(fhostname("alice1"));
     server_addr.sin_port = htons(PORT_SERVER);
 
     if (bind(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
