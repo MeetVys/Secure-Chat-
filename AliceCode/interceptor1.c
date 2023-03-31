@@ -85,8 +85,8 @@ int main()
         char buffer1[1024] = {0};
         int valread = read(clientfd, buffer1, sizeof(buffer1));
         printf("Client >>>>>> %s\n", buffer1);
-        int send_flag = send(clientfd, "Hello Lets Chat unencrypted", sizeof("Hello Lets Chat unencrypted"), 0);
-        printf("Server >>>>>> Hello Lets Chat unencrypted\n");
+        int send_flag = send(clientfd, "chat_ok_reply", sizeof("chat_ok_reply"), 0);
+        printf("Server >>>>>> chat_ok_reply\n");
         if (send_flag == -1)
         {
             printf("Sending Failed\n");
@@ -112,8 +112,8 @@ int main()
             perror("connect() failed");
             exit(EXIT_FAILURE);
         }
-        int sending_flag_client = send(original_sockfd, "Hello chat starts", sizeof("Hello chat starts"), 0);
-        printf("Client >>>>> Hello chat starts\n");
+        int sending_flag_client = send(original_sockfd, "chat_hello", sizeof("chat_hello"), 0);
+        printf("Client >>>>> chat_hello\n");
         char buffer_in[1024] = {0};
         valread = read(original_sockfd, buffer_in, sizeof(buffer_in));
         printf("Server >>>>>%s\n", buffer_in);
@@ -127,11 +127,11 @@ int main()
             valread = read(clientfd, buffer1, sizeof(buffer1));
 
             printf("%s\n", buffer1);
-            if (strcmp(buffer1, "START_TLS") == 0)
+            if (strcmp(buffer1, "chat_START_SSL") == 0)
             {
 
-                send_flag = send(clientfd, "NOT_SUPPORTED", sizeof("NOT_SUPPORTED"), 0);
-                printf("Server MITM >>>>>> NOT_SUPPORTED\n");
+                send_flag = send(clientfd, "chat_START_SSL_NOT_SUPPORTED", sizeof("chat_START_SSL_NOT_SUPPORTED"), 0);
+                printf("Server MITM >>>>>> chat_START_SSL_NOT_SUPPORTED\n");
                 if (send_flag == -1)
                 {
                     printf("Sending Failed\n");
@@ -146,7 +146,7 @@ int main()
             {
                 printf("Sending Failed\n");
             }
-            if (strcmp(buffer1, "OK_BYE") == 0)
+            if (strcmp(buffer1, "chat_close") == 0)
             {
                 break;
             }
@@ -163,7 +163,7 @@ int main()
                 printf("Sending Failed\n");
                 // what to do ????
             }
-            if (strcmp(buffer1, "OK_BYE") == 0)
+            if (strcmp(buffer1, "chat_close") == 0)
             {
                 break;
             }

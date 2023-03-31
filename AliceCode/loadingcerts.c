@@ -69,7 +69,7 @@ int main()
         perror("connect() failed");
         exit(EXIT_FAILURE);
     }
-    int sending_flag_client = send(sockfd, "Hello chat starts", sizeof("Hello chat starts"), 0);
+    int sending_flag_client = send(sockfd, "chat_hello", sizeof("chat_hello"), 0);
     printf("Client >>>>> Hello chat starts\n");
     char buffer_in[1024] = {0};
     int valread = read(sockfd, buffer_in, sizeof(buffer_in));
@@ -82,7 +82,7 @@ int main()
         scanf("%s", buffer1);
         sending_flag_client = send(sockfd, buffer1, sizeof(buffer1), 0);
 
-        if (strcmp(buffer1, "OK_BYE") == 0)
+        if (strcmp(buffer1, "chat_close") == 0)
         {
             printf("Client has closed the TCP with Server by itself\n");
             break;
@@ -91,12 +91,12 @@ int main()
         printf("Server >>>>> ");
         valread = read(sockfd, buffer_in, sizeof(buffer_in));
         printf("%s\n", buffer_in);
-        if (strcmp(buffer_in, "OK_START_TLS") == 0)
+        if (strcmp(buffer_in, "chat_START_SSL_ACK") == 0)
         {
             wfg = 0;
             break;
         }
-        if (strcmp(buffer_in, "OK_BYE") == 0)
+        if (strcmp(buffer_in, "chat_close") == 0)
         {
             printf("Client has closed the TCP with Server by Server\n");
             break;
@@ -244,7 +244,7 @@ int main()
                 SSL_free(ssl);
                 exit(EXIT_FAILURE);
             }
-            if (strcmp(message, "OK_BYE") == 0)
+            if (strcmp(message, "chat_close") == 0)
             {
                 break;
             }
@@ -260,7 +260,7 @@ int main()
             }
             printf("Received message: %s\n", buffer);
 
-            if (strcmp(buffer, "OK_BYE") == 0)
+            if (strcmp(buffer, "chat_close") == 0)
             {
                 break;
             }

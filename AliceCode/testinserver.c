@@ -121,8 +121,8 @@ int main()
         char buffer1[1024] = {0};
         int valread = read(clientfd, buffer1, sizeof(buffer1));
         printf("Client >>>>>> %s\n", buffer1);
-        int send_flag = send(clientfd, "Hello Lets Chat unencrypted", sizeof("Hello Lets Chat unencrypted"), 0);
-        printf("Server >>>>>> Hello Lets Chat unencrypted\n");
+        int send_flag = send(clientfd, "chat_ok_reply", sizeof("chat_ok_reply"), 0);
+        printf("Server >>>>>> chat_ok_reply\n");
         if (send_flag == -1)
         {
             printf("Sending Failed\n");
@@ -135,11 +135,11 @@ int main()
             valread = read(clientfd, buffer1, sizeof(buffer1));
 
             printf("%s\n", buffer1);
-            if (strcmp(buffer1, "START_TLS") == 0)
+            if (strcmp(buffer1, "chat_START_SSL") == 0)
             {
                 wfg = 0;
-                send_flag = send(clientfd, "OK_START_TLS", sizeof("OK_START_TLS"), 0);
-                printf("Server >>>>>> OK_START_TLS\n");
+                send_flag = send(clientfd, "chat_START_SSL_ACK", sizeof("chat_START_SSL_ACK"), 0);
+                printf("Server >>>>>> chat_START_SSL_ACK\n");
                 if (send_flag == -1)
                 {
                     printf("Sending Failed\n");
@@ -147,7 +147,7 @@ int main()
 
                 break;
             }
-            if (strcmp(buffer1, "OK_BYE") == 0)
+            if (strcmp(buffer1, "chat_close") == 0)
             {
                 printf("Server has closed the TCP with client upon request of Client\n");
                 close(clientfd);
@@ -162,7 +162,7 @@ int main()
             {
                 printf("Sending Failed\n");
             }
-            if (strcmp(buffer1, "OK_BYE") == 0)
+            if (strcmp(buffer1, "chat_close") == 0)
             {
                 printf("Server has closed the TCP with client by itself\n");
                 close(clientfd);
@@ -226,7 +226,7 @@ int main()
                 continue;
             }
             printf("Received message: %s\n", buffer);
-            if (strcmp(buffer, "OK_BYE") == 0)
+            if (strcmp(buffer, "chat_close") == 0)
             {
                 break;
             }
@@ -236,7 +236,7 @@ int main()
             scanf("%s", response);
             len = SSL_write(ssl, response, strlen(response));
 
-            if (strcmp(response, "OK_BYE") == 0)
+            if (strcmp(response, "chat_close") == 0)
             {
                 break;
             }
