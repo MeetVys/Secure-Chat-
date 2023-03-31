@@ -11,7 +11,7 @@
 #include <openssl/err.h>
 
 #define SERVER_IP "127.0.0.1"
-#define SERVER_PORT 9091
+#define SERVER_PORT 9092
 
 #define MITM_IP "127.0.0.2"
 #define MITM_PORT 9092
