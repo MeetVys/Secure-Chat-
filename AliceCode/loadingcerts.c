@@ -13,6 +13,8 @@
 #include <openssl/x509.h>
 #include <openssl/x509_vfy.h>
 
+// while intercepting keep server ip .2
+
 #define SERVER_IP "127.0.0.1"
 #define SERVER_PORT 9091
 #define CERT_FILE_CLIENT "alice1-crt.pem"
@@ -107,10 +109,9 @@ int main()
             exit(EXIT_FAILURE);
         }
 
-
-/// ssession resumption
+        /// ssession resumption
         SSL_SESSION *session = NULL;
-        
+
         FILE *fp = fopen(SESSION_ID_FILE, "rb");
         if (fp != NULL)
         {
@@ -120,16 +121,12 @@ int main()
         else
             printf("fp null\n");
 
-
         if (session == NULL)
         {
             printf("NULL session key ");
         }
         else
             printf("Not null Session ");
-
-        
-
 
         fp = fopen(SESSION_ID_FILE2, "wb");
         if (fp != NULL)
@@ -138,15 +135,9 @@ int main()
             fclose(fp);
         }
 
-
-
-
         // SSL_CTX_set_session(ctx, session);
 
-
-
-
-//// session resumption till here
+        //// session resumption till here
 
         SSL *ssl = SSL_new(ctx);
         SSL_set_session_id_context(ssl, (const unsigned char *)"my_app", strlen("my_app"));
@@ -166,8 +157,8 @@ int main()
         }
 
         // perform SSL handshake
-        SSL_set_session(ssl,session);
-                
+        SSL_set_session(ssl, session);
+
         if (SSL_connect(ssl) <= 0)
         {
             perror("SSL_connect() failed");
