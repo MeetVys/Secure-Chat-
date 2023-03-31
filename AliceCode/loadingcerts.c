@@ -15,7 +15,7 @@
 
 // while intercepting keep server ip .2
 
-#define SERVER_IP "127.0.0.1"
+#define SERVER_IP "127.0.0.2"
 #define SERVER_PORT 9091
 #define CERT_FILE_CLIENT "alice1-crt.pem"
 #define KEY_FILE_CLIENT "alice1-key.pem"
