@@ -14,10 +14,10 @@
 #define KEY_FILE_MITM "bob1.pem"
 
 #define SERVER_IP "127.0.0.1"
-#define SERVER_PORT 9091
+#define SERVER_PORT 9092
 
 #define MITM_IP "127.0.0.2"
-#define MITM_PORT 9091
+#define MITM_PORT 9092
 
 #define CERT_FILE_CLIENT_MITM "alice1-crt.pem"
 #define KEY_FILE_CLIENT_MITM "alice1-key.pem"

@@ -14,7 +14,7 @@
 #define KEY_FILE_SERVER "bob1.pem"
 
 #define SERVER_IP "127.0.0.1"
-#define PORT_SERVER 9091
+#define PORT_SERVER 9092
 
 char *fhostname(char *hostname)
 {

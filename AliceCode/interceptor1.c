@@ -14,7 +14,7 @@
 #define SERVER_PORT 9091
 
 #define MITM_IP "127.0.0.2"
-#define MITM_PORT 9091
+#define MITM_PORT 9092
 
 char *fhostname(char *hostname)
 {
