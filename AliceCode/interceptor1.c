@@ -7,6 +7,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <openssl/ssl.h>
+#include <netdb.h>
 #include <openssl/err.h>
 
 #define SERVER_IP "127.0.0.1"
@@ -14,6 +15,25 @@
 
 #define MITM_IP "127.0.0.2"
 #define MITM_PORT 9091
+
+char *fhostname(char *hostname)
+{
+
+    struct hostent *host_info = gethostbyname(hostname);
+    printf("set one\n");
+
+    if (host_info != NULL)
+    {
+        printf("Hostname: %s\n", hostname);
+        printf("IP Address: %s\n", inet_ntoa(*(struct in_addr *)host_info->h_addr_list[0]));
+    }
+    else
+    {
+        printf("Failed to resolve hostname %s\n", hostname);
+    }
+
+    return inet_ntoa(*(struct in_addr *)host_info->h_addr_list[0]);
+}
 
 int main()
 {
@@ -29,7 +49,7 @@ int main()
     // bind to a local address and port
     struct sockaddr_in server_addr = {0};
     server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = inet_addr(MITM_IP);
+    server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     server_addr.sin_port = htons(MITM_PORT);
     if (bind(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
     {
@@ -86,7 +106,7 @@ int main()
         struct sockaddr_in ori_server_addr = {0};
         ori_server_addr.sin_family = AF_INET;
         ori_server_addr.sin_port = htons(SERVER_PORT);
-        ori_server_addr.sin_addr.s_addr = inet_addr(SERVER_IP);
+        ori_server_addr.sin_addr.s_addr = inet_addr(fhostname("bob1"));
         if (connect(original_sockfd, (struct sockaddr *)&ori_server_addr, sizeof(ori_server_addr)) < 0)
         {
             perror("connect() failed");
