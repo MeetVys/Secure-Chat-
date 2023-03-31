@@ -24,9 +24,9 @@
 #define SESSION_ID_FILE "session_id.bin"
 #define SESSION_ID_FILE2 "session_id2.bin"
 
-char *fhostname(char *hostname1)
+char *fhostname(char *hostname)
 {
-    const char *hostname = "www.google.com";
+
     struct hostent *host_info = gethostbyname(hostname);
     printf("set one\n");
 

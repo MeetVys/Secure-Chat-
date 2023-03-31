@@ -16,9 +16,9 @@
 #define SERVER_IP "127.0.0.1"
 #define PORT_SERVER 9091
 
-char *fhostname(char *hostname1)
+char *fhostname(char *hostname)
 {
-    const char *hostname = "www.google.com";
+
     struct hostent *host_info = gethostbyname(hostname);
     printf("set one\n");
 
