@@ -13,11 +13,11 @@
 #include <openssl/x509.h>
 #include <openssl/x509_vfy.h>
 
-#define CERT_FILE_CLIENT "./Certs/bob1-crt.pem"
-#define KEY_FILE_CLIENT "./Keys/bob1.pem"
+#define CERT_FILE_CLIENT "./Certs/alice1-crt.pem"
+#define KEY_FILE_CLIENT "./Keys/alice1-key.pem"
 
-#define CERT_FILE_SERVER "./Certs/alice1-crt.pem"
-#define KEY_FILE_SERVER "./Keys/alice1-key.pem"
+#define CERT_FILE_SERVER "./Certs/bob1-crt.pem"
+#define KEY_FILE_SERVER "./Keys/bob1.pem"
 
 #define CA_CERTS_DIR "./Certs/"
 #define SESSION_ID_FILE "./Session_tickets/session_id.bin"
@@ -92,7 +92,7 @@ int server_function()
     SSL_CTX_set_max_proto_version(ctx, TLS1_2_VERSION);
     SSL_CTX_set_session_id_context(ctx, (const unsigned char *)"my_app", strlen("my_app"));
 
-       // load the server certificate and key
+    // load the server certificate and key
     if (SSL_CTX_use_certificate_file(ctx, CERT_FILE_SERVER, SSL_FILETYPE_PEM) <= 0)
     {
         perror("SSL_CTX_use_certificate_file() failed");
