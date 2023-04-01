@@ -13,13 +13,13 @@
 #include <openssl/x509.h>
 #include <openssl/x509_vfy.h>
 
-#define CERT_FILE_CLIENT "./certs/alice1-crt.pem"
-#define KEY_FILE_CLIENT "./keys/alice1-key.pem"
+#define CERT_FILE_CLIENT "./Certs/alice1-crt.pem"
+#define KEY_FILE_CLIENT "./Keys/alice1-key.pem"
 
-#define CERT_FILE_SERVER "./certs/bob1-crt.pem"
-#define KEY_FILE_SERVER "./keys/bob1.pem"
+#define CERT_FILE_SERVER "./Certs/bob1-crt.pem"
+#define KEY_FILE_SERVER ".Keys/bob1.pem"
 
-#define CA_CERTS_DIR "./certs/"
+#define CA_CERTS_DIR "./Certs/"
 #define SESSION_ID_FILE "./Session_tickets/session_id.bin"
 #define SESSION_ID_FILE2 "./Session_tickets/session_id2.bin"
 
