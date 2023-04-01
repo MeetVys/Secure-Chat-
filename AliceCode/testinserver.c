@@ -14,7 +14,8 @@
 #define KEY_FILE_SERVER "bob1.pem"
 
 #define SERVER_IP "127.0.0.1"
-#define PORT_SERVER 9092
+
+#define SERVER_PORT 9092
 
 char *fhostname(char *hostname)
 {
@@ -55,7 +56,7 @@ int main()
     struct sockaddr_in server_addr = {0};
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    server_addr.sin_port = htons(PORT_SERVER);
+    server_addr.sin_port = htons(SERVER_PORT);
 
     if (bind(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
     {
