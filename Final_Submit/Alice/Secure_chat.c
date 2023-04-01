@@ -17,7 +17,7 @@
 #define KEY_FILE_CLIENT "./Keys/alice1-key.pem"
 
 #define CERT_FILE_SERVER "./Certs/bob1-crt.pem"
-#define KEY_FILE_SERVER ".Keys/bob1.pem"
+#define KEY_FILE_SERVER "./Keys/bob1.pem"
 
 #define CA_CERTS_DIR "./Certs/"
 #define SESSION_ID_FILE "./Session_tickets/session_id.bin"
@@ -79,7 +79,7 @@ int server_function()
         exit(EXIT_FAILURE);
     }
 
-       // create a new SSL context
+    // create a new SSL context
     SSL_CTX *ctx = SSL_CTX_new(TLS_server_method());
     if (!ctx)
     {
