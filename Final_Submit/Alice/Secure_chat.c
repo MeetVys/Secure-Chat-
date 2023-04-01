@@ -90,12 +90,7 @@ int server_function()
     SSL_CTX_set_max_proto_version(ctx, TLS1_2_VERSION);
     SSL_CTX_set_session_id_context(ctx, (const unsigned char *)"my_app", strlen("my_app"));
 
-    if (SSL_CTX_set_cipher_list(ctx, "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384") <= 0)
-    {
-        printf("Error setting the cipher list.\n");
-        exit(0);
-    }
-    // load the server certificate and key
+        // load the server certificate and key
     if (SSL_CTX_use_certificate_file(ctx, CERT_FILE_SERVER, SSL_FILETYPE_PEM) <= 0)
     {
         perror("SSL_CTX_use_certificate_file() failed");
