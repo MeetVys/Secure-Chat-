@@ -46,7 +46,7 @@ char *fhostname(char *hostname)
 
 int server_function()
 {
-    // printf("%s\n", fhostname("www.google.com"));
+
     // initialize OpenSSL library
     SSL_library_init();
     OpenSSL_add_all_algorithms();
@@ -79,9 +79,7 @@ int server_function()
         exit(EXIT_FAILURE);
     }
 
-    printf("addresss %d", server_addr.sin_addr.s_addr);
-
-    // create a new SSL context
+       // create a new SSL context
     SSL_CTX *ctx = SSL_CTX_new(TLS_server_method());
     if (!ctx)
     {
