@@ -420,7 +420,7 @@ int client_function()
         if (ret != 1)
         {
             // Handle error
-            exit(1);
+            printf("what is eo\n");
         }
         // SSL_set_cert_store(ssl, store);
         SSL_CTX_set_cert_store(ctx, store);
