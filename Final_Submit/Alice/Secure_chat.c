@@ -417,11 +417,7 @@ int client_function()
 
         X509_STORE *store = X509_STORE_new();
         int ret = X509_STORE_load_locations(store, CA_CERTS_DIR, NULL);
-        if (ret != 1)
-        {
-            // Handle error
-            printf("what is eo\n");
-        }
+
         // SSL_set_cert_store(ssl, store);
         SSL_CTX_set_cert_store(ctx, store);
         X509 *server_cert = SSL_get_peer_certificate(ssl);
@@ -444,6 +440,10 @@ int client_function()
             ERR_error_string(res, errbuf);
             fprintf(stderr, "SSL verification failed: %s\n", errbuf);
             // handle error
+        }
+        else
+        {
+            printf("Verification Certificate done\n");
         }
 
         printf("\n\n----------------------Chat is now Encrypte--------------------------------------------\n");

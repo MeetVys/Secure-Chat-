@@ -375,7 +375,7 @@ int main()
                 continue;
             }
             printf("Client >>>>> %s\n", buffer);
-
+            scanf("%s", buffer);
             len = SSL_write(ssl2, buffer, strlen(buffer));
             if (strcmp(buffer, "chat_close") == 0)
             {
@@ -393,7 +393,7 @@ int main()
             printf("Server >>>>> %s\n", buffer);
 
             // send a response back to the client
-
+            scanf("%s", buffer);
             len = SSL_write(ssl, buffer, strlen(buffer));
 
             if (strcmp(buffer, "chat_close") == 0)
