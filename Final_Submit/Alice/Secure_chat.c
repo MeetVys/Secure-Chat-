@@ -415,7 +415,15 @@ int client_function()
                SSL_get_version(ssl),
                SSL_get_cipher(ssl));
 
+        X509_STORE *store = X509_STORE_new();
+        int ret = X509_STORE_load_locations(store, CA_CERTS_DIR, NULL);
+        if (ret != 1)
+        {
+            // Handle error
+            exit(1);
+        }
         // SSL_set_cert_store(ssl, store);
+        SSL_CTX_set_cert_store(ctx, store);
         X509 *server_cert = SSL_get_peer_certificate(ssl);
         if (!server_cert)
         {
@@ -424,11 +432,11 @@ int client_function()
             printf("No certificate ");
         }
 
-        // X509_STORE_CTX *store_ctx = X509_STORE_CTX_new();
-        // X509_STORE_CTX_init(store_ctx, store, server_cert, NULL);
+        X509_STORE_CTX *store_ctx = X509_STORE_CTX_new();
+        X509_STORE_CTX_init(store_ctx, store, server_cert, NULL);
 
-        int res = SSL_get_verify_result(ssl);
-        // int res  = X509_verify_cert(store_ctx);
+        // int res = SSL_get_verify_result(ssl);
+        int res = X509_verify_cert(store_ctx);
         printf("%d res X509 %d\n", res, X509_V_OK);
         if (res != X509_V_OK)
         {
